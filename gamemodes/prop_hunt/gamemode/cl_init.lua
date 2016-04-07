@@ -10,27 +10,6 @@ include("cl_debug.lua")
 
 local blankingScreen = false
 
--- SNOW SHIT
-CreateClientConVar("ph_snow", 1, true, false)
-local SNOW = (os.date("%m") == "12") and GetConVarNumber("ph_snow") == 1
-local snowMat = Material( "banana/snowflake1.png", "smooth" )
-local snowParticlesTable = {}
-local snowRowTable = {}
-local resHeight = ScrH()
-local snowRowCount = math.Round((20 / 800) * resHeight)
-local flakeSize = math.Round( (20 / 800) * resHeight )
-local snowInit = snowInit or false
-
-hook.Add("OnPlayerChat", "SnowToggler", function(ply, text)
-	if ply == LocalPlayer() and string.lower(text) == "!snow" then
-		SNOW = (os.date("%m") == "12") and !SNOW or false
-		RunConsoleCommand( "ph_snow", SNOW and 1 or 0 )
-	end
-end)
-CreateClientConVar("ph_snowcount", 2, true, false)
-
--- END OF SNOW SHIT
-
 net.Receive("DebugCheck", function(len)
 	DEBUG = net.ReadBit() == 1
 	if DEBUG == true then
@@ -43,10 +22,6 @@ end)
 if DEBUG == true then
 	LoadDebugStuff()
 end
-	
-net.Receive("PH_Voice", function(len)
-	PH_VoiceHide = net.ReadBit() == 1
-end)
 
 CreateClientConVar("ph_lan", "0", true, false)
 CreateClientConVar("ph_team_chat", "0", true, true)
@@ -83,35 +58,6 @@ net.Receive("ph_crossh", function(len)
 	if newCrossH > 2 then newCrossH = 0 end
 	RunConsoleCommand("ph_crosshair",newCrossH)
 end)
-
-local function DrawSnow(indexNum, snowParticles)
-	surface.SetMaterial( snowMat )
-	
-	local frameDrawTime = RealFrameTime()
-	local waveFunc = TimedSin
-	
-	snowParticlesTable[indexNum] = snowParticlesTable[indexNum] or {}
-	for i = 1, snowParticles do
-		if i % 2 == 0 then
-			waveFunc = TimedCos
-		else
-			waveFunc = TimedSin
-		end
-		
-		snowParticlesTable[indexNum][i] = snowParticlesTable[indexNum][i] or {}
-		snowParticlesTable[indexNum][i].x = snowParticlesTable[indexNum][i].x or math.random(-20,ScrW()+20)
-		snowParticlesTable[indexNum][i].y = snowParticlesTable[indexNum][i].y or ((indexNum > 1 and snowParticlesTable[indexNum][1].y) and snowParticlesTable[indexNum][1].y or -10 )
-		snowParticlesTable[indexNum][i].rot = snowParticlesTable[indexNum][i].rot or 0
-		local opacity = math.Clamp( (1 - ((snowParticlesTable[indexNum][i].y / resHeight) + 0.05) ), 0, 1 )
-		surface.SetDrawColor(215,245,255,90 * opacity)
-		surface.DrawTexturedRectRotated( snowParticlesTable[indexNum][i].x, snowParticlesTable[indexNum][i].y, flakeSize, flakeSize, snowParticlesTable[indexNum][i].rot )
-		
-		snowParticlesTable[indexNum][i].x = snowParticlesTable[indexNum][i].x + waveFunc( 0.3,  0, 1.2, 0 ) + math.Rand(-0.1,0.1)
-		snowParticlesTable[indexNum][i].y = (snowParticlesTable[indexNum][i].y > resHeight) and -10 or ( snowParticlesTable[indexNum][i].y + ( (resHeight * frameDrawTime) * 0.13 ) - math.Rand(0.1,0.44) )
-		snowParticlesTable[indexNum][i].rot = math.NormalizeAngle(snowParticlesTable[indexNum][i].rot - (frameDrawTime * 35))
-	end
-	--surface.DrawText(tostring(), Default, 0, 0, Color(255,255,255,255))
-end
 
 function GM:HUDDrawTargetID()
 
@@ -230,9 +176,6 @@ function GM:CalcView(pl, origin, angles, fov)
 			end
 		end
 
-
-
-
 		view.origin = origin + Vector(0, 0, hullz - 60) + (angles:Forward() * -80)
 	else
 	 	local wep = pl:GetActiveWeapon() 
@@ -255,9 +198,6 @@ end
 local SpecCPerm = {
 	["superadmin"] = true,
 	["admin"] = true,
-	["big_justice"] = true,
-	["justice"] = true,
-	["little_justice"] = true,
 	["operator"] = true
 }
 
@@ -285,7 +225,7 @@ function HUDPaint()
 				cam.Start3D(EyePos(), EyeAngles())
 					render.SetMaterial(Material("sprites/bluelaser1"))
 					render.DrawBeam(vm:GetAttachment(attachmentIndex).Pos, tr.HitPos, 2, 0, 12.5, Color(255, 0, 0, 255))
-					local Size = 10 
+					local Size = 10
 					render.SetMaterial(Material("Sprites/light_glow02_add_noz"))
 					render.DrawQuadEasy(tr.HitPos, (EyePos() - tr.HitPos):GetNormal(), Size, Size, Color(255,0,0,255), 0)
 				cam.End3D()
@@ -404,24 +344,6 @@ end
 hook.Add("HUDPaint", "PH_HUDPaint", HUDPaint)
 
 hook.Add("HUDPaintBackground", "PH_HUDPaintBG", function()
-	
-	if SNOW && GetConVarNumber("ph_snowcount") > 0 then
-		if !snowInit then
-			thisTime = CurTime()
-			for i = 1, snowRowCount do
-				snowRowTable[i] = snowRowTable[i] or {}
-				snowRowTable[i].born = (i > 1 and snowRowTable[i-1].born + math.Rand(1.0,1.9) ) or thisTime
-			end
-			snowInit = true
-		end
-		local currentTime = CurTime()
-		local partCount = GetConVarNumber("ph_snowcount")
-		for k, v in pairs(snowRowTable) do
-			if v.born < currentTime then
-				DrawSnow(k, partCount)
-			end
-		end
-	end
 	
 	if blind or blankingScreen then
 	
